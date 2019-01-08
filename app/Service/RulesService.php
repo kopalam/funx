@@ -8,7 +8,7 @@
 
 namespace App\Service;
 use App\Models\bgcc\TabHeadlineArticle;
-use App\Models\bgcc\TabHeadlineArticleGather;
+//use App\Models\bgcc\TabHeadlineArticleGather;
 use Illuminate\Support\Facades\DB;
 use QL\QueryList;
 class RulesService
@@ -30,13 +30,13 @@ class RulesService
 
             foreach ($titleData as $key =>$val){
 
-                    foreach ($val as $k=>$v){
-                        for ($i=0;$i<count($v);$i++){
-                            $res[$i]['title']     =   $v['title'];
-                            $res[$i]['img']     =   empty($v['imgPath'])?'default.jpg':ltrim($v['imgPath'],'/');
-                            $res[$i]['link']     =   $v['pageUrl'];
-                        }
+                foreach ($val as $k=>$v){
+                    for ($i=0;$i<count($v);$i++){
+                        $res[$i]['title']     =   $v['title'];
+                        $res[$i]['img']     =   empty($v['imgPath'])?'default.jpg':ltrim($v['imgPath'],'/');
+                        $res[$i]['link']     =   $v['pageUrl'];
                     }
+                }
             }
             if(empty($res)){
                 $data   =   ['data'=>null];
@@ -53,22 +53,22 @@ class RulesService
         $titleData  =   $getRule['titleData'];
 
 
-            foreach ($titleData as $key =>$val){
-                foreach ($imgData as $k =>$v){
-                    if(empty($v['link']) || empty(strstr($v['link'],'com')))
-                        unset($imgData[$k]);
-                    if($val['link'] == $v['link']){
-                        $res[$key]['title'] =   $val['title'];
-                        $res[$key]['img']   =   ltrim($v['img'],'/');
-                        $res[$key]['link']   =  $v['link'];
-                    }
+        foreach ($titleData as $key =>$val){
+            foreach ($imgData as $k =>$v){
+                if(empty($v['link']) || empty(strstr($v['link'],'com')))
+                    unset($imgData[$k]);
+                if($val['link'] == $v['link']){
+                    $res[$key]['title'] =   $val['title'];
+                    $res[$key]['img']   =   ltrim($v['img'],'/');
+                    $res[$key]['link']   =  $v['link'];
                 }
             }
+        }
         $result     =   $this->getGameContent('17173',$res);
-            if(empty($res)){
-                $data   =   ['data'=>null];
-                return $data;
-            }
+        if(empty($res)){
+            $data   =   ['data'=>null];
+            return $data;
+        }
 //            print_r($result);
         $return     =   $this->cleanData($result['data'],$url,'17173','17173');
 //        $data   =   ['titleCount'=>count($result),'data'=>$result];
@@ -81,27 +81,29 @@ class RulesService
      */
     public function nineGameRules($page,$type=1)
     {
-        $res    =   [];
-        //采集页数暂时不可用
-//        if($type == 2 && $page > 1){
-//            for ($i=1;$i<=$page;$i++){
-//                $url    =   'http://www.9game.cn/news/0_'.$i; //最新新闻资讯
-//                $getRule[$i]   =   $this->rulesString('9you',$url,$type);
-//            }
-//            $content    =   $this->getGameContent('9you',$getRule,$type);
-//            foreach ($content as $key =>$val){
-//                $res[]    =   $val[0];
-//            }
-//            return $res;
-//        }
-        $return     =   [];
+
         $url    =   'http://www.9game.cn/news/0_1';
         $getRule   =   $this->rulesString('9you',$url,$type);
-//        print_r($getRule);
         $content    =   $this->getGameContent('9you',$getRule,$type);
         $return     =   $this->cleanData($content,$url,'九游','9you');
         return $return;
     }
+
+    public function returnContent($name,$type,$prefix,$author)
+    {
+
+        $url    =   $prefix;
+        $getRule    =   $this->rulesString($name,$url,$type);
+        $content    =   $this->getGameContent($name,$getRule,$prefix);
+        if($name=='uuu9'){//特殊处理数组
+            $return     =   $this->cleanData($content[0],$url,$author,$name);
+        }else{
+            $return     =   $this->cleanData($content,$url,$author,$name);
+        }
+
+        return $return;
+    }
+
 
     public function rulesString($name,$url,$type=1)
     {
@@ -146,8 +148,55 @@ class RulesService
                     $result[$key]['link'] =   $stringUrl.$val['link'];
                     $result[$key]['dates'] =  strtotime(preg_replace('/([\x80-\xff]*)/i','',$val['dates']));
                 }
-
                 return $result;
+                break;
+            case 'uuu9':
+                if($url == 'news'){//采集新闻页面
+                    $getUrl    =   'http://news.uuu9.com/api/GetNewsArticleList.ashx?cid=383,1414,1409,1410,1411,1412&p=100';
+                    $data   =  json_decode(file_get_contents($getUrl),true);
+                    foreach($data['result'] as $key=>$val){
+                        $result[$key]['title'] =  $val['title'];
+                        $result[$key]['link'] =   $val['url'];
+                        $result[$key]['img']  =    $val['img'];
+                        $result[$key]['md5']    =   md5($val['url']);
+                    }
+                    return $result;
+                }
+                if($url=='game'){//采集综合页面
+                    $getUrl     =   'http://www.uuu9.com/';
+                    $titleRules   =   [
+                        'title'=>['h4>a','title'],
+                        'link'=>['h4>a','href']
+                    ];
+                    $titleRange     =   '.newsbox';
+                    $titleData = QueryList::get($getUrl)->rules($titleRules)->range($titleRange)->encoding('UTF-8','GB2312')->queryData();
+                    foreach($titleData as $key=>$val){
+                        $result[$key]['title'] =  $val['title'];
+                        $result[$key]['link'] =   $val['link'];
+                        $result[$key]['md5']    =   md5($val['link']);
+                    }
+                    return $result;
+                }
+                break;
+            case 'chinaGame':
+                $url    =   'https://game.china.com/news/jx/';
+                $titleRules   =   [
+                    'title'=>['.detail>a','text'],
+                    'link'=>['.detail>a','href']
+                ];
+                $titleRange     =   '.item-phototext';
+                $titleData = QueryList::get($url)->rules($titleRules)->range($titleRange)->queryData();
+                return $titleData;
+                break;
+            case 'qqGame':
+                $url    =   'https://new.qq.com/ch/games/';
+                $titleRules   =   [
+                    'title'=>['h3>a','text'],
+                    'link'=>['h3>a','href']
+                ];
+                $titleRange     =   '.list';
+                $titleData = QueryList::get($url)->rules($titleRules)->range($titleRange)->queryData();
+                print_r($titleData);exit;
                 break;
             default :
 
@@ -212,6 +261,52 @@ class RulesService
 
                 return $result;
                 break;
+            case 'uuu9':
+                if($type=='news'){
+                    //处理网址，link为空的去掉
+                    foreach ($data as $k=>$v){
+                        if(empty($v['link'])){
+                            unset($data[$k]);
+                        }
+                        if(strstr($v['link'],'bagua')){
+                            unset($data[$k]);
+                        }
+                    }
+                }
+                $range    =   '.mt30';
+                $rules    =   [
+                    'title'=>['h1','text'],
+                    'dates'=>['.textdetail>h4','text'],
+                    'content'=>['#content','html']
+                ];
+                foreach($data as $key=>$val){
+                    $res[$key] = QueryList::get($val['link'])->rules($rules)->range($range)->encoding('UTF-8','GB2312')->query()->getData();
+                    $res[$key] = json_decode(json_encode($res[$key]), true);
+
+                }
+
+                foreach ($res as $k=>$v){//去掉空数组
+                    foreach ($v as $get=>$da){
+                        if(empty($get)){
+                            unset($v[$get]);
+                        }
+                        $result[$get][]=$da;
+                    }
+                }
+                return $result;
+                break;
+            case 'chinaGame':
+                $range  =   '#chan_newsBlk';
+                $rules  =   [
+                    'title'=>['h1','text'],
+                    'content'=>['#chan_newsDetail','html']
+                ];
+                foreach($data as $key=>$val){
+                    $res[$key] = QueryList::get($val['link'])->rules($rules)->range($range)->query()->getData();
+                    $res[$key] = json_decode(json_encode($res[$key]), true);
+                }
+                return $res;
+                break;
             default:
 
                 break;
@@ -229,10 +324,12 @@ class RulesService
 
     public function cleanData($data,$url,$author,$name)
     {
-        $model  =   new TabHeadlineArticle();
 
-        foreach ($data as $key =>$val) {
-            foreach ($val as $get => $datas) {
+        $model  =   new TabHeadlineArticle();
+        $return     =   [];
+
+        if($name=='uuu9'){
+            foreach ($data as $key=>$datas){
                 $return[$key]['article_title'] = $datas['title'];
                 $return[$key]['article_content'] = $datas['content'];
                 if($name == '9you'){
@@ -249,16 +346,39 @@ class RulesService
                 $return[$key]['article_cate_id'] = 0;
                 $return[$key]['article_cover_image']    =   !empty($datas['article_cover_image']) ?$datas['article_cover_image']:0;
                 $return[$key]['md5']    =   md5($datas['title'].$author);
-
+            }
+        }else{
+            foreach ($data as $key =>$val) {
+                foreach ($val as $get => $datas) {
+                    $return[$key]['article_title'] = $datas['title'];
+                    $return[$key]['article_content'] = $datas['content'];
+                    if($name == '9you'){
+                        $return[$key]['article_create_time'] = strtotime(preg_replace('/([\x80-\xff]*)/i', '', $datas['dates']));
+                    }else{
+                        $return[$key]['article_create_time'] = time();
+                    }
+                    $return[$key]['article_author'] = $author;
+                    $return[$key]['article_come'] = $url;
+                    $return[$key]['article_type'] = 3;
+                    $return[$key]['article_upload_video'] = 0;
+                    $return[$key]['article_tags'] = 0;
+                    $return[$key]['status'] = 0;
+                    $return[$key]['article_cate_id'] = 0;
+                    $return[$key]['article_cover_image']    =   !empty($datas['article_cover_image']) ?$datas['article_cover_image']:0;
+                    $return[$key]['md5']    =   md5($datas['title'].$author);
+                }
             }
         }
-            //检查表中是否已经存在相同的标题，如果是，则删除数组中的
 
+        //检查表中是否已经存在相同的标题，如果是，则删除数组中的
+    print_r($return);exit;
         $checkData  =   $this->checkTitle($return);
+        //TODO::尚未进行入库测试（中华游戏网）
+        //TODO::BUG:用标题加密md5，如果修改标题后，将会重新增加一篇相同文章
 
         //如果数据全部重复，则为false
         if($checkData == false){
-            $res =  ['msg'=>'暂时没有新的数据','code'=>200];
+            $res =  ['msg'=>'暂时没有新的数据','code'=>0];
             DB::table('tab_headline_article_gather')->truncate();
             //TabHeadlineArticleGather::where(['status','=',0])->update(['status'=>1]);
             return $res;
@@ -266,7 +386,7 @@ class RulesService
         //清理重复数据后，直接插入
         if(is_array($checkData)){
             TabHeadlineArticle::insert($checkData);
-            $res    =   ['data'=>$checkData,'count'=>count($return)];
+            $res    =   ['code'=>200,'count'=>count($return),'msg'=>'采集成功'];
             DB::table('tab_headline_article_gather')->truncate();
             return $res;
         }
@@ -281,25 +401,25 @@ class RulesService
      */
     public function checkTitle($data)
     {
-
         $findSample = [];
-         TabHeadlineArticleGather::insert($data);
+        TabHeadlineArticleGather::insert($data);
         //采集的数据先写入gather表
         $gather     =  DB::table('tab_headline_article_gather')->where('status','=',0)->get();
         $gather     =   json_decode($gather,true);
 
-       $article     =   DB::table('tab_headline_article')->where('status',0)->get();
+        $article     =   DB::table('tab_headline_article')->where('status',0)->get();
         $article    =   json_decode($article,true);
 
         //否则应该处理掉重复的标题数组，再返回
         foreach ($article as $k =>$v){
             foreach ($gather as $get=>$datum){
                 if($v['md5'] == $datum['md5']){
-                  unset($gather[$get]);
+                    unset($gather[$get]);
                 }
 
             }
         }
+
         if(empty($gather)){
             return false; //删除后如果为空,则返回false
         }
