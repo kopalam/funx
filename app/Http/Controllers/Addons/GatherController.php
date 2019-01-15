@@ -6,11 +6,10 @@
  * Time: 11:17 AM
  */
 
-namespace App\Http\Controllers\General;
+namespace App\Http\Controllers\Addons;
 
-use App\Service\Common\RewardService;
 use App\Http\Controllers\Controller;
-use App\Service\RulesService;
+use App\Service\Addons\RulesService;
 use Illuminate\Http\Request;
 
 Class GatherController extends Controller

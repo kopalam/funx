@@ -6,9 +6,7 @@
  * Time: 下午3:47
  */
 
-namespace App\Service;
-use App\Models\bgcc\TabHeadlineArticle;
-use App\Models\bgcc\TabHeadlineArticleGather;
+namespace App\Service\Addons;
 use Illuminate\Support\Facades\DB;
 use QL\QueryList;
 class RulesService
