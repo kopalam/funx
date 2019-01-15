@@ -19,9 +19,11 @@ $router->get('/', function () use ($router) {
 //    return str_random(32);
 //});
 
-$router->post('/test','General\ApiController@test');
+$router->get('/test','General\ApiController@test');
 $router->get('/content','General\ApiController@getContent');
 $router->get('/reward','General\ApiController@reward');
-$router->get('/titleList','General\ApiController@getGameTitle');
-$router->post('/content','General\ApiController@getGameContent');
-
+$router->post('/content','Addons\GatherController@Content');
+$router->post('/set_oss','General\ApiController@qiniuSet');
+$router->get('/error',function(){
+   return 'Whoops! This is error page && Does not exits this page';
+});
