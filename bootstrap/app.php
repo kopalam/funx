@@ -38,6 +38,7 @@ $app = new Laravel\Lumen\Application(
 | your own bindings here if you like or you can make another file.
 |
 */
+$app->register(biliboobrian\lumenAngularCodeGenerator\Provider\GeneratorServiceProvider::class);
 
 $app->singleton(
     Illuminate\Contracts\Debug\ExceptionHandler::class,

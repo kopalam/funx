@@ -6,20 +6,16 @@
     "type": "project",
     "require": {
         "php": ">=7.1.3",
+        "biliboobrian/lumen-angular-code-generator": "^1.0",
         "elasticsearch/elasticsearch": "^6.0",
         "filp/whoops": "^2.3",
         "jaeger/querylist": "^4.1",
         "laravel/lumen-framework": "5.7.*",
-<<<<<<< HEAD
         "lcobucci/jwt": "^3.2",
         "maximebf/debugbar": "^1.15",
         "qiniu/php-sdk": "^7.2",
         "reliese/laravel": "^0.0.13",
         "tymon/jwt-auth": "^1.0@dev",
-=======
-        "qiniu/php-sdk": "^7.2",
-        "reliese/laravel": "dev-master",
->>>>>>> 6522b05680e1b608cc2356c52494806844e01759
         "vlucas/phpdotenv": "~2.2"
     },
     "require-dev": {
