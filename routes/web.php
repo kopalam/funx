@@ -22,8 +22,7 @@ $router->get('/', function () use ($router) {
 $router->get('/test','General\ApiController@test');
 $router->get('/content','General\ApiController@getContent');
 $router->get('/reward','General\ApiController@reward');
-$router->post('/content','Addons\GatherController@Content');
-$router->post('/set_oss','General\ApiController@qiniuSet');
-$router->get('/error',function(){
-   return 'Whoops! This is error page && Does not exits this page';
-});
+$router->get('/titleList','General\ApiController@getGameTitle');
+$router->post('/content','General\GatherController@Content');
+$router->post('/setoss','General\ApiController@OssSet');
+$router->post('/upload','General\ApiController@uploadToOss');
