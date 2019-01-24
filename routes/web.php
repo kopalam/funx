@@ -26,3 +26,4 @@ $router->get('/titleList','General\ApiController@getGameTitle');
 $router->post('/content','General\GatherController@Content');
 $router->post('/setoss','General\ApiController@OssSet');
 $router->post('/upload','General\ApiController@uploadToOss');
+$router->get('/test','General\ApiController@test');

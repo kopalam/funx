@@ -4,6 +4,7 @@ namespace App\Http\Controllers\General;
 use App\Http\Controllers\Controller;
 use App\Service\General\ApiService;
 use App\Service\General\UseRedisService;
+use App\Services\WxSdk\WXLoginHelper;
 use Illuminate\Http\Request;
 class UserController extends Controller
 {
@@ -27,12 +28,13 @@ class UserController extends Controller
         $cauthIden 	=	$request->post('cauth_iden');//根据appId，传递到微信登录中，查找对应的secrect
 
         try{
-            $getData = new WXLoginHelper;
+            $getData = new WXLoginHelper();
 
             $userData = $getData->checkLogin($code, $rawData, $signature, $encryptedData,$iv,$cauthIden);
 
             if(isset($userData['code']))
-                Utils::apiDisplay( $userData );
+                showMsg(200,'success',$userData);
+//                showMsg::apiDisplay(  );
 
             /*检查user表是否存在该用户，如果存在，则返回session，如果不存在，写入表再发回session*/
             $openId = $userData['openId'];
