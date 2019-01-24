@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Created by PhpStorm.
  * User: kopa
@@ -8,6 +9,7 @@
 
 namespace App\Service\General;
 
+use Illuminate\Support\Facades\Config;
 use Qiniu\Auth;
 use Qiniu\Storage\UploadManager;
 use App\Models\funx\TabTools;
@@ -51,8 +53,7 @@ class ApiService
         }
         $return     =   ['url'=>$this->url.$ret['key']];
 
-
         return $return;
-
     }
 }
+

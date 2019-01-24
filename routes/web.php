@@ -19,12 +19,11 @@ $router->get('/', function () use ($router) {
 //    return str_random(32);
 //});
 
-$router->post('/test','General\ApiController@test');
+$router->get('/test','General\ApiController@test');
 $router->get('/content','General\ApiController@getContent');
 $router->get('/reward','General\ApiController@reward');
 $router->get('/titleList','General\ApiController@getGameTitle');
 $router->post('/content','General\GatherController@Content');
 $router->post('/setoss','General\ApiController@OssSet');
 $router->post('/upload','General\ApiController@uploadToOss');
-
-
+$router->get('/test','General\ApiController@test');
