@@ -38,6 +38,9 @@ Class GatherController extends Controller
                 case '9you':
                     $result     =   $service->nineGameRules($pageCount,$type);
                     break;
+                case 'sougou':
+                    $result     =   $service->returnContent('搜狗',1,'sougou','搜狗');
+                    break;
                 default:
 
                     break;
