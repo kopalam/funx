@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers\General;
 use App\Http\Controllers\Controller;
+use App\Models\funx\TabUsers;
 use App\Service\General\ApiService;
+use App\Service\General\AuthService;
 use App\Service\General\UseRedisService;
 use App\Services\WxSdk\WXLoginHelper;
 use Illuminate\Http\Request;
+use Tymon\JWTAuth\JWTAuth;
+
 class UserController extends Controller
 {
+
     /**
      * @param Request $request
      * 小程序登陆
@@ -50,7 +55,7 @@ class UserController extends Controller
 
             switch ($info) {
                 case 0:
-                    $user = new Users;
+                    $user = new TabUsers();
                     $user->openId = $userData['openId'];
                     $user->unionId = $userData['unionId'];
                     $user->nickName = preg_replace('/[\x{10000}-\x{10FFFF}]/u','',$userData['nickName']);
@@ -70,7 +75,7 @@ class UserController extends Controller
                     $data = ['user_id'=>$has_user->id,'unionId'=>$has_user->unionId,'openId'=>$has_user->openId,'telephone'=>$has_user->telephone];
                     break;
                 default:
-                    Utils::jsonError(1,'登录出错，错误代码01187');
+                    failMsg('登录出错，错误代码01187');
                     break;
             }
 
@@ -79,17 +84,26 @@ class UserController extends Controller
             $data['token']=$userData['session3rd'];
 
 
-            $redis = new UseRedis();
+            $redis = new UseRedisService();
             $redis->set($userData['session3rd'],json_encode($userData['sessionKey'].'='.$unionId),259200);//保存3天
 
             // $data['testRedis'] =  $redis->get($userData['session3rd']);
 
-        }catch(Exception $e){
-            $data['status']  = 1;
+        }catch(\Exception $e){
+            $data['status']  = $e->getCode();
             $data['message'] = $e->getMessage();
-            Utils::apiDisplay( $data );
+          failMsg($data);
         }
-        $this->view->disable();
-        Utils::apiDisplay(['status'=>0,'data'=>$data]);
+        showMsg(200,$data);
+
+    }
+
+    public function test()
+    {
+
+        $service    =   new AuthService();
+        $cauth  =   $service->check('admin/index/index',6) == false ? 0 : 1;
+
+        return $cauth;
     }
 }

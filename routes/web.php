@@ -20,10 +20,11 @@ $router->get('/', function () use ($router) {
 //});
 
 $router->get('/test','General\ApiController@test');
-$router->get('/content','General\ApiController@getContent');
+$router->get('/content','Addons\GatherController@get_content');
 $router->get('/reward','General\ApiController@reward');
 $router->get('/titleList','General\ApiController@getGameTitle');
 $router->post('/content','General\GatherController@Content');
 $router->post('/setoss','General\ApiController@OssSet');
 $router->post('/upload','General\ApiController@uploadToOss');
-$router->get('/test','General\ApiController@test');
+$router->get('/test','General\UserController@test');
+$router->post('/adminLogin','Admin\AdminController@login');

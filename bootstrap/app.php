@@ -40,6 +40,8 @@ $app = new Laravel\Lumen\Application(
 */
 $app->register(biliboobrian\lumenAngularCodeGenerator\Provider\GeneratorServiceProvider::class);
 $app->register(Illuminate\Redis\RedisServiceProvider::class);
+$app->register(Tymon\JWTAuth\Providers\LumenServiceProvider::class);
+$app->register(Illuminate\Redis\RedisServiceProvider::class);
 $app->singleton(
     Illuminate\Contracts\Debug\ExceptionHandler::class,
     App\Exceptions\Handler::class

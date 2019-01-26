@@ -78,7 +78,6 @@ return [
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => env('DB_PREFIX', ''),
         ],
-
     ],
 
     /*
@@ -116,6 +115,7 @@ return [
             'password' => env('REDIS_PASSWORD', null),
             'port' => env('REDIS_PORT', 6379),
             'database' => env('REDIS_DB', 0),
+            'read_write_timeout' => 0,//new
         ],
 
         'cache' => [
