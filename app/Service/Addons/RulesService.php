@@ -27,6 +27,58 @@ class RulesService
 //// 存储空间名称
 //        $this->bucket= $config['bucket'];
 //    }
+    /**
+     * @param $data
+     * @测试是否可采集资讯
+     */
+    function getRuleTest($data)
+    {
+        $data['encoding'] = $data['encoding'] == 0 ? false : true;
+        switch (intval($data['type'])) {
+            case 1 :
+                $getList = $this->generalTitleArr($data['url'], $data['range_list'], $data['rule_list'], $data['encoding']);
+                $res = $this->checkTitleSameple($getList, $data['author']);
+                if (empty($res))
+                    return false;
+                //入表对应记录
+
+                break;
+            case 2 :
+                $getList = $this->generalTitleArr($data['url'], $data['range_list'], $data['rule_list'], $data['encoding']);
+                $titleData = $this->checkTitleSameple($getList, $data['author']);
+                if (empty($titleData))
+                    return false;
+                if ($this->checkArrEmpty($titleData) == false) { //剔除数据后，如果为空则返回没有数据
+                    return false;
+                }
+                if (strstr($data['handle'], 'qq')) {
+                    $titleData = $this->deleteEmptyString($titleData, 'video');
+                }
+                $res = $this->generalFormatArrContent($data['range_content'], $data['rule_content'], $titleData, $data['encoding']);
+                if ($res == false) {
+                    return ['msg' => '暂时没有新的数据', 'code' => 0];
+                }
+                break;
+            case 3 :
+                //如果type = 3,则入表。 表中存在handle则更新，否则写入
+                $data['rule_list'] = json_encode($data['rule_list']);
+                $data['rule_content'] = json_encode($data['rule_content']);
+                unset($data['type']);
+                unset($data['encoding']);
+                $handleData = DB::table('tab_headline_gather_rule')->where('handle',$data['handle'])->get();
+                if(!empty($handleData)) {
+                    DB::table('tab_headline_gather_rule')->insert($data);
+                }
+                DB::table('tab_headline_gather_rule')->where('handle',$data['handle'])->update($data);
+                return true;
+                break;
+            default :
+                return false;
+                break;
+        }
+        return $res;
+    }
+
 
     /**
      * 17173采集规则

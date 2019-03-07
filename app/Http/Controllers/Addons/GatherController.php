@@ -49,9 +49,45 @@ Class GatherController extends Controller
         }catch(\Exception $e){
 
         }
+    }
+    /**
+     * @param Request $request
+     * 获取列表
+     */
+    public function getContentRule(REQUEST $request)
+    {
+        $data['rule_list'] = $request->post('rule');
+        $data['range_list'] = $request->post('range');
+        $data['encoding'] = $request->post('encoding');
+        $data['url'] = $request->post('url');
+        $data['author'] = $request->post('author');
+        $data['type'] = $request->post('type');
+        $service = new RulesService();
+        $getList = $service->getRuleTest($data);
+        $res = ['data'=>$getList,'status'=>200];
+        return json_encode($res,true);
+    }
 
-        //测试请求获取内容页面
-//        $contentResult  =   $service->getGameContent('17173',$result);
-//        print_r($contentResult);
+    /**
+     * @param Request $request
+     * @return false|string
+     * 测试获取内容
+     */
+    public function getRule(REQUEST $request)
+    {
+        $data['rule_list'] = $request->post('ruleList');
+        $data['range_list'] = $request->post('range');
+        $data['name'] = $request->post('name');
+        $data['handle'] = $request->post('handle');
+        $data['author'] = $request->post('author');
+        $data['url'] = $request->post('url');
+        $data['type'] = $request->post('type');
+        $data['encoding'] = $request->post('encoding');
+        $data['rule_content'] = $request->post('ruleContentList');
+        $data['range_content'] = $request->post('contentRange');
+        $service = new RulesService();
+        $getList = $service->getRuleTest($data);
+        $res = ['data'=>$getList,'status'=>200];
+        return json_encode($res,true);
     }
 }
