@@ -124,7 +124,6 @@ class RulesService
         $stime=microtime(true);
         $url    =   $prefix;
         $getRule    =   $this->rulesString($name,$url,$type);
-        print_r($getRule);exit;
         $rule   =   $this->checkTitleSameple($getRule,$author);
         $content    =   $this->getGameContent($name,$rule,$prefix);
         if($content==false){
