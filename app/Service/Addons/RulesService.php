@@ -11,6 +11,7 @@ use App\Models\funx\TabHeadlineArticles;
 use App\Models\funx\TabTools;
 use Illuminate\Support\Facades\DB;
 use QL\QueryList;
+use GuzzleHttp\Psr7\Response;
 class RulesService
 {
 
@@ -54,10 +55,13 @@ class RulesService
                 if (strstr($data['handle'], 'qq')) {
                     $titleData = $this->deleteEmptyString($titleData, 'video');
                 }
-                $res = $this->generalFormatArrContent($data['range_content'], $data['rule_content'], $titleData, $data['encoding']);
-                if ($res == false) {
+
+                $content = $this->generalFormatArrContent($data['range_content'], $data['rule_content'], $titleData, $data['encoding']);
+//                print_r($content);exit;
+                if ($content == false) {
                     return ['msg' => '暂时没有新的数据', 'code' => 0];
                 }
+                $res     =   $this->cleanData($content,$data['name'],$data['author'],$data['handle'],$data['type']);
                 break;
             case 3 :
                 //如果type = 3,则入表。 表中存在handle则更新，否则写入
@@ -65,11 +69,11 @@ class RulesService
                 $data['rule_content'] = json_encode($data['rule_content']);
                 unset($data['type']);
                 unset($data['encoding']);
-                $handleData = DB::table('tab_headline_gather_rule')->where('handle',$data['handle'])->get();
+                $handleData = DB::table('tab_headline_gather_rules')->where('handle',$data['handle'])->get();
                 if(!empty($handleData)) {
-                    DB::table('tab_headline_gather_rule')->insert($data);
+                    DB::table('tab_headline_gather_rules')->insert($data);
                 }
-                DB::table('tab_headline_gather_rule')->where('handle',$data['handle'])->update($data);
+                DB::table('tab_headline_gather_rules')->where('handle',$data['handle'])->update($data);
                 return true;
                 break;
             default :
@@ -590,27 +594,57 @@ class RulesService
      * @param $data 数据数组
      * @param null $encoding 是否要转字符格式
      */
-    public function generalFormatArrContent($range,$rules,$data,$encoding=false)
+    public function generalFormatArrContent($range, $rules, $data, $encoding = false)
     {
-
-        if($encoding==true){
-            foreach($data as $key=>$val){
-                $res[$key] = QueryList::get($val['link'])->rules($rules)->range($range)->encoding('UTF-8','GB2312')->query()->getData();
-                $res[$key] = json_decode(json_encode($res[$key]), true);
-            }
-        }else{
-            foreach($data as $key=>$val){
-                $res[$key] = QueryList::get($val['link'])->rules($rules)->range($range)->query()->getData();
-                $res[$key] = json_decode(json_encode($res[$key]), true);
-            }
+        foreach ($data as $key => $val) {
+            $url[] = $val['link'];
         }
-        foreach ($res as $datum=>$v){
-            if(empty($v))
+
+        if ($encoding == true) {
+            $res = [];
+            QueryList::rules($rules)
+                ->range($range)
+                ->multiGet($url)
+                // 设置并发数为2
+                ->concurrency(5)
+                // 设置GuzzleHttp的一些其他选项
+                ->withOptions([
+                    'timeout' => 60
+                ])
+                // 设置HTTP Header
+                ->withHeaders(['User-Agent' => 'Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) 
+                    AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1'])
+                // HTTP success回调函数
+                ->success(function (QueryList $ql, Response $response, $index) use (&$res) {
+                    $data = $ql->encoding('UTF-8', 'GB2312')->queryData();
+                    $res[] = $data;
+                })->send();
+        } else {
+            $res = [];
+            QueryList::rules($rules)
+                ->range($range)
+                ->multiGet($url)
+                // 设置并发数为2
+                ->concurrency(5)
+                // 设置GuzzleHttp的一些其他选项
+                ->withOptions([
+                    'timeout' => 60
+                ])// 设置HTTP Header
+                    //TODO 添加user-agent后会导致部分网站抓取失败，原因初步为网站没有手机版本而导致
+                ->withHeaders(['User-Agent' => 'Mozilla/5.0 (Linux; U; Android 8.1.0; zh-cn; BLA-AL00 Build/HUAWEIBLA-AL00) AppleWebKit/537.36 (KHTML, like Gecko) 
+                                                Version/4.0 Chrome/57.0.2987.132 MQQBrowser/8.9 Mobile Safari/537.36'])
+                // HTTP success回调函数
+                ->success(function (QueryList $ql, Response $response, $index) use (&$res) {
+                    $data = $ql->queryData();
+                    $res[] = $data;
+                })->send();
+        }
+
+        foreach ($res as $datum => $v) {
+            if (empty($v))
                 unset($res[$datum]);
         }
-
         return $res;
-
     }
 
     /**
@@ -622,9 +656,24 @@ class RulesService
      * @清洗数据，重新归类
      */
 
-    public function cleanData($data,$url,$author,$name)
+    public function cleanData($data,$url,$author,$name,$type=null)
     {
         $return     =   [];
+
+        if($type == 2)
+        {
+            foreach ($data as $key =>$val) {
+                foreach ($val as $get => $datas) {
+                    if(empty($datas['title'])){
+                        unset($val[$get]);
+                    }
+                    $return[$key]['title'] = $datas['title'];
+                    $return[$key]['content'] = mb_substr($datas['link'],0,250)."...";//$datas['link'];//
+                }
+            }
+            return $return;
+        }
+
         if($name=='uuu9'){
             foreach ($data as $key=>$datas){
                 $return[$key]['article_title'] = $datas['title'];
@@ -662,6 +711,8 @@ class RulesService
             }
         }
 
+
+
         //检查表中是否已经存在相同的标题，如果是，则删除数组中的
 //        $checkData  =   $this->checkTitle($return);
 
@@ -692,12 +743,7 @@ class RulesService
 //    public function checkTitle($data)
 //    {
 //
-//        $findSample = [];
-//         TabHeadlineArticleGather::insert($data);
-//        //采集的数据先写入gather表
-//        $gather     =  DB::table('tab_headline_article_gather')->where('status','=',0)->get();
-//        $gather     =   json_decode($gather,true);
-//        $article     =   DB::table('tab_headline_article')->where('status',0)->get();
+//        $article     =   DB::table('tab_headline_articles')->where('article_title',$data)->get();
 //        $article    =   json_decode($article,true);
 //
 //        //否则应该处理掉重复的标题数组，再返回
@@ -724,10 +770,10 @@ class RulesService
     public function checkTitleSameple($data,$author=null)
     {
         if($author!==null){
-            $article     =   DB::table('tab_headline_article')->where('article_author',$author)->get(['article_title']);
+            $article     =   DB::table('tab_headline_articles')->where('article_author',$author)->get(['article_title']);
             $article    =   json_decode($article,true);
         }else{
-            $article     =   DB::table('tab_headline_article')->where('status','>=',0)->get(['article_title']);
+            $article     =   DB::table('tab_headline_articles')->where('status','>=',0)->get(['article_title']);
             $article    =   json_decode($article,true);
         }
 

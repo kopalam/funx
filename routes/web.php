@@ -28,3 +28,5 @@ $router->post('/setoss','General\ApiController@OssSet');
 $router->post('/upload','General\ApiController@uploadToOss');
 $router->get('/test','General\UserController@test');
 $router->post('/adminLogin','Admin\AdminController@login');
+$router->post('/gather','Addons\GatherController@getContentRule');
+$router->post('/gatherList','Addons\GatherController@getRule');

@@ -54,7 +54,7 @@ Class GatherController extends Controller
      * @param Request $request
      * 获取列表
      */
-    public function getContentRule(REQUEST $request)
+    public function getRule(REQUEST $request)
     {
         $data['rule_list'] = $request->post('rule');
         $data['range_list'] = $request->post('range');
@@ -73,7 +73,7 @@ Class GatherController extends Controller
      * @return false|string
      * 测试获取内容
      */
-    public function getRule(REQUEST $request)
+    public function getContentRule(REQUEST $request)
     {
         $data['rule_list'] = $request->post('ruleList');
         $data['range_list'] = $request->post('range');
