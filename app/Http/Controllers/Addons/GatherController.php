@@ -54,7 +54,7 @@ Class GatherController extends Controller
      * @param Request $request
      * 获取列表
      */
-    public function getRule(REQUEST $request)
+    public function getContentRule(REQUEST $request)
     {
         $data['rule_list'] = $request->post('rule');
         $data['range_list'] = $request->post('range');
@@ -73,7 +73,7 @@ Class GatherController extends Controller
      * @return false|string
      * 测试获取内容
      */
-    public function getContentRule(REQUEST $request)
+    public function getListRule(REQUEST $request)
     {
         $data['rule_list'] = $request->post('ruleList');
         $data['range_list'] = $request->post('range');
@@ -90,4 +90,41 @@ Class GatherController extends Controller
         $res = ['data'=>$getList,'status'=>200];
         return json_encode($res,true);
     }
+
+    /**
+     * @param Request $request
+     * 获取已有规则列表
+     */
+    public function getRule(Request $request)
+    {
+        $page = $request->post('page');
+        $service = new RulesService();
+        try {
+            $res = $service->getRulesList($page);
+            $data = ['message' => 'success', 'status' => 200, 'data' => $res];
+        } catch (\Exception $e) {
+            $data = ['message' => '目前还没有数据', 'status' => 0];
+            return json_encode($data, true);
+        }
+        return json_encode($data, true);
+    }
+
+    /**
+     * @param Request $request
+     * 获取编辑内容
+     */
+    public function editRule(Request $request)
+    {
+        $id = $request->post('id');
+        $service = new RulesService();
+        try {
+            $res = $service->getRule($id);
+            $data = ['message' => 'success', 'status' => 200, 'data' => $res];
+        } catch (\Exception $e) {
+            $data = ['message' => '目前还没有数据', 'status' => 0];
+            return json_encode($data, true);
+        }
+        return json_encode($data, true);
+    }
+
 }

@@ -83,6 +83,28 @@ class RulesService
         return $res;
     }
 
+    /**
+     * 获取规则列表
+     */
+    public function getRulesList($page)
+    {
+        $res = DB::table('tab_headline_gather_rule')->where('status', '1')->paginate(15);
+        $result = [];
+        if (empty($res))
+            throw new \Exception('目前还没有数据', 0);
+        return $res;
+    }
+
+    /**
+     * 获取规则编辑内容
+     */
+    public function getRule($id)
+    {
+        $res = $res = DB::table('tab_headline_gather_rule')->where('id', $id)->get();
+        if (empty($res))
+            throw new \Exception('目前还没有数据', 0);
+        return $res;
+    }
 
     /**
      * 17173采集规则
