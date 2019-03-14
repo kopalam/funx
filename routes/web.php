@@ -33,3 +33,4 @@ $router->post('/gatherList','Headline\GatherController@getListRule');
 $router->post('/gatherContent','Headline\GatherController@getContentRule');
 $router->post('/getRule','Headline\GatherController@getRule');
 $router->post('/editRule','Headline\GatherController@editRule');
+$router->post('/ruleSet','Headline\GatherController@ruleSet');

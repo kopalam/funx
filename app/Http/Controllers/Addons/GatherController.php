@@ -16,50 +16,16 @@ Class GatherController extends Controller
 {
 
     /**
-     * @methods(GET)
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     * 获取规则
-     * 目前情况建议采集首页内容，其他内容容易出错
-     */
-    public function get_content(REQUEST $request)
-    {
-
-        $pageCount   =   $request->post('pageCount'); //获取多少页内容
-        $type   =   $request->post('type'); //
-        $handle     =   $request->post('handle');
-        $pageCount   =   empty($pageCount) ? 1 : $pageCount;
-        $service    =   new RulesService();
-        try{
-            switch ($handle){
-                case '17173':
-                    $result     =   $service->rules($pageCount,$type);
-                    break;
-                case '9you':
-                    $result     =   $service->nineGameRules($pageCount,$type);
-                    break;
-                case 'sougou':
-                    $result     =   $service->returnContent('搜狗',1,'sougou','搜狗');
-                    break;
-                default:
-
-                    break;
-            }
-            print_r($result);
-        }catch(\Exception $e){
-
-        }
-    }
-    /**
      * @param Request $request
      * 获取列表
      */
-    public function getContentRule(REQUEST $request)
+    public function getListRule(REQUEST $request)
     {
         $data['rule_list'] = $request->post('rule');
         $data['range_list'] = $request->post('range');
         $data['encoding'] = $request->post('encoding');
         $data['url'] = $request->post('url');
+        $data['full_url'] = $request->post('full_url');
         $data['author'] = $request->post('author');
         $data['type'] = $request->post('type');
         $service = new RulesService();
@@ -73,7 +39,7 @@ Class GatherController extends Controller
      * @return false|string
      * 测试获取内容
      */
-    public function getListRule(REQUEST $request)
+    public function getContentRule(REQUEST $request)
     {
         $data['rule_list'] = $request->post('ruleList');
         $data['range_list'] = $request->post('range');
@@ -81,10 +47,12 @@ Class GatherController extends Controller
         $data['handle'] = $request->post('handle');
         $data['author'] = $request->post('author');
         $data['url'] = $request->post('url');
+        $data['full_url'] = $request->post('full_url');
         $data['type'] = $request->post('type');
         $data['encoding'] = $request->post('encoding');
         $data['rule_content'] = $request->post('ruleContentList');
         $data['range_content'] = $request->post('contentRange');
+        $data['full_url'] = $request->post('full_url');
         $service = new RulesService();
         $getList = $service->getRuleTest($data);
         $res = ['data'=>$getList,'status'=>200];
@@ -125,6 +93,28 @@ Class GatherController extends Controller
             return json_encode($data, true);
         }
         return json_encode($data, true);
+    }
+    public function refresh(Request $request)
+    {
+        $token = new Token();
+        $data = $token::createTestToken(100,18923087481);
+        echo $data;
+    }
+
+    /**
+     * @param INT id
+     * handler : delete 删除 disable 禁用
+     * status 当前的用户状态
+     */
+    public function ruleSet(Request $request)
+    {
+        $handler = $request->post('handler');
+        $id = $request->post('id');
+        $tab = 'tab_headline_gather_rule';
+        $service = new RulesService();
+        $res = $service::generalSet($id,$tab,$handler);
+        $return = ['status'=>$res==1?200:0,'message'=>$res==1 ? 'success' : 'faile'];
+        return $return;
     }
 
 }
