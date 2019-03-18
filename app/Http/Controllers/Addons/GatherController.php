@@ -28,6 +28,7 @@ Class GatherController extends Controller
         $data['full_url'] = $request->post('full_url');
         $data['author'] = $request->post('author');
         $data['type'] = $request->post('type');
+        $data['gather_types'] = $request->post('gather_types');
         $service = new RulesService();
         $getList = $service->getRuleTest($data);
         $res = ['data'=>$getList,'status'=>200];
@@ -53,6 +54,7 @@ Class GatherController extends Controller
         $data['rule_content'] = $request->post('ruleContentList');
         $data['range_content'] = $request->post('contentRange');
         $data['full_url'] = $request->post('full_url');
+        $data['gather_types'] = $request->post('gather_types');
         $service = new RulesService();
         $getList = $service->getRuleTest($data);
         $res = ['data'=>$getList,'status'=>200];

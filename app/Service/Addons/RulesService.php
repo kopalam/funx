@@ -75,9 +75,17 @@ class RulesService
                 unset($data['type']);
                 $handleData = $this->tabRule->where('handle',$data['handle'])->get();//DB::table('tab_headline_gather_rules')->where('handle',$data['handle'])->get();
                 if(empty(json_decode($handleData,true))) {
-                    TabHeadlineGatherRules::insert($data);
+                    $this->tabRule->insert($data);
                 }
-                $this->tabRule->where('handle',$data['handle'])->update($data);
+                    $this->tabRule->where('handle',$data['handle'])->update($data);
+
+
+                //把分类加入types表中
+//                $gatherTypes = TabHeadlineGatherTypes::where('id',$data['gather_types'])->get(['gather_rule_id'])->toArray();
+//                if($gatherTypes) {
+//                    //是否已经存在该分类，如果是，则不处理，否则加入
+//                    $findTypes = strstr($gatherTypes,$id) == true ? :substr_replace($gatherTypes,$id.',',0,0);
+//                }
                 return true;
                 break;
             default :
