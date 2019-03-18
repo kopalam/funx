@@ -110,11 +110,50 @@ Class GatherController extends Controller
     {
         $handler = $request->post('handler');
         $id = $request->post('id');
-        $tab = 'tab_headline_gather_rule';
+        $tab = 'tab_headline_gather_rules';
         $service = new RulesService();
         $res = $service::generalSet($id,$tab,$handler);
         $return = ['status'=>$res==1?200:0,'message'=>$res==1 ? 'success' : 'faile'];
         return $return;
+    }
+
+    /**
+     * @param Request $request
+     * handle 管理状态，创建create、编辑edit、删除delete 禁用disable 获取列表list
+     */
+    public function gatherType(Request $request)
+    {
+        $handle = $request->post('handle');
+        $id = $request->post('id');
+        $name = $request->post('name');
+        $simple = $request->post('simple');
+        $simple = empty($simple) ? false : $simple;
+        $gather_rule_id = $request->post('gather_rule_id');
+
+        $service = new RulesService();
+        $tab = 'tab_headline_gather_types';
+        switch ($handle) {
+            case 'create':
+                $res = $service->gatherTypeCredit(null,$name);
+                break;
+            case 'edit':
+                $res = $service->gatherTypeCredit($id,$name,$gather_rule_id);
+                break;
+            case 'delete':
+                $res = $service->generalSet($id,$tab,'delete');
+                break;
+            case 'disable':
+                $res = $service->generalSet($id,$tab,'disable');
+                break;
+            case 'list':
+                $res = $service->gatherTypelist($simple);
+                showMsg(200,'success',$res);
+                break;
+            default :
+                $res = showMsg(0,'出错了');
+                break;
+        }
+        showMsg(200,'success');
     }
 
 }

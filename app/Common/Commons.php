@@ -7,9 +7,10 @@
      * @param string $data
      * @return false|string
      */
-    function showMsg($code,$msg,$data=''){
-        $result =  ['code'=>$code,'msg'=>$msg,'data'=>$data];
-        exit( response()->json($result) );
+    function showMsg($code, $msg, $data = '')
+    {
+        $result = ['status' => $code, 'msg' => $msg, 'data' => $data];
+        return exit(json_encode($result));
     }
 
     /**
@@ -22,9 +23,9 @@
     function failMsg($res,$msg='',$data='')
     {
         if(!empty($res)){
-            return( json_encode($res));
+            return( response()->json($res));
         }
-        $result =  ['code'=>0,'msg'=>$msg,'data'=>$data];
+        $result =  ['status'=>0,'msg'=>$msg,'data'=>$data];
         exit( response()->json($result) );
     }
 
@@ -36,7 +37,7 @@
      */
     function successMsg($msg,$data)
     {
-        $result =  ['code'=>200,'msg'=>$msg,'data'=>$data];
+        $result =  ['status'=>200,'msg'=>$msg,'data'=>$data];
         exit( response()->json($result) );
     }
 

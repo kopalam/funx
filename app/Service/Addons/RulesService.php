@@ -8,15 +8,19 @@
 
 namespace App\Service\Addons;
 use App\Models\funx\TabHeadlineArticles;
+use App\Models\funx\TabHeadlineGatherRules;
+use App\Models\funx\TabHeadlineGatherTypes;
 use App\Models\funx\TabTools;
 use Illuminate\Support\Facades\DB;
 use QL\QueryList;
 use GuzzleHttp\Psr7\Response;
 class RulesService
 {
-
-//    function __construct()
-//    {
+    private $tabRule;
+    private $tabHeadlineArticle;
+    private $tabGatherTypes;
+    function __construct()
+    {
 //        $data   =   DB::table('tab_tools')->where('name','oss_storage')->get();
 //        $data   =   json_decode($data,true);
 //        $config     =   json_decode($data[0]['config'],true);;
@@ -27,7 +31,10 @@ class RulesService
 //        $this->endpoint = $config['domain'];
 //// 存储空间名称
 //        $this->bucket= $config['bucket'];
-//    }
+        $this->tabRule = DB::table('tab_headline_gather_rules');
+        $this->tabHeadlineArticle = DB::table('tab_headline_articles');
+        $this->tabGatherTypes = DB::table('tab_headline_gather_types');
+    }
 
     /**
      * @param $data
@@ -43,8 +50,6 @@ class RulesService
                 $res = $this->checkTitleSameple($getList, $data['author']);
                 if (empty($res))
                     return false;
-                //入表对应记录
-
                 break;
             case 2 :
                 $getList = $this->generalTitleArr($data['url'], $data['range_list'], $data['rule_list'], $data['encoding']);
@@ -68,11 +73,11 @@ class RulesService
                 $data['rule_list'] = json_encode($data['rule_list']);
                 $data['rule_content'] = json_encode($data['rule_content']);
                 unset($data['type']);
-                $handleData = DB::table('tab_headline_gather_rule')->where('handle',$data['handle'])->get();
+                $handleData = $this->tabRule->where('handle',$data['handle'])->get();//DB::table('tab_headline_gather_rules')->where('handle',$data['handle'])->get();
                 if(empty(json_decode($handleData,true))) {
-                    TabHeadlineGatherRule::insert($data);
+                    TabHeadlineGatherRules::insert($data);
                 }
-                DB::table('tab_headline_gather_rule')->where('handle',$data['handle'])->update($data);
+                $this->tabRule->where('handle',$data['handle'])->update($data);
                 return true;
                 break;
             default :
@@ -87,7 +92,7 @@ class RulesService
      */
     public function getRulesList($page)
     {
-        $res = DB::table('tab_headline_gather_rule')->where('status', '>=','0')->paginate(15);
+        $res = $this->tabRule->where('status', '>=','0')->paginate(15);
         $result = [];
         if (empty($res))
             throw new \Exception('目前还没有数据', 0);
@@ -99,7 +104,7 @@ class RulesService
      */
     public function getRule($id)
     {
-        $res = $res = DB::table('tab_headline_gather_rule')->where('id', $id)->get();
+        $res = $this->tabRule->where('id', $id)->get();
         if (empty($res))
             throw new \Exception('目前还没有数据', 0);
         return $res;
@@ -111,19 +116,19 @@ class RulesService
      * @param $handler
      * 根据handler进行对应的处理
      */
-    public static function generalSet($id,$tab,$handler)
+    public static function generalSet($id, $tab, $handler)
     {
-        $data = DB::table($tab)->where('id',$id)->get();
-        $data = json_decode($data,true);
-        if(empty($data))
+        $data = DB::table($tab)->where('id', $id)->get();
+        $data = json_decode($data, true);
+        if (empty($data))
             return false;
         switch ($handler) {
             case 'delete' :
-                $res = DB::table($tab)->where('id',$id)->update(['status'=>-1]);
+                $res = DB::table($tab)->where('id', $id)->update(['status' => -1]);
                 break;
             case 'disable':
-                $state = $data[0]['status'] == 0?1:0;
-                $res = DB::table($tab)->where('id',$id)->update(['status'=>$state]);
+                $state = $data[0]['status'] == 0 ? 1 : 0;
+                $res = DB::table($tab)->where('id', $id)->update(['status' => $state]);
                 break;
             default:
                 $res = 0;
@@ -131,7 +136,59 @@ class RulesService
         }
 
         return $res;
+
     }
+
+    /**
+     * 获取分类列表
+     */
+    public function gatherTypelist($simple=false)
+    {
+        if($simple == true) {
+            $typesData = TabHeadlineGatherTypes::where('status','>=','0')->get(['id','name'])->toArray();
+//            $typesData = json_decode(json_encode($typesData),true);
+            return $typesData;
+        }
+        $typesData = TabHeadlineGatherTypes::where('status','>=','0')->get();
+        $typesData = json_decode(json_encode($typesData),true);
+        $res = [];
+        foreach ($typesData as $key =>&$val) {
+            //改变数据，有id 1,2,3变成 qqEnt,chianGame
+            $rulesName = DB::select("select * from tab_headline_gather_rules where find_in_set(id,'".$val['gather_rule_id']."')");
+            if(empty($rulesName)) {
+                $val['rules'] = null;
+            }else {
+                $rulesName =  json_decode(json_encode($rulesName),true);
+                foreach ($rulesName as $k =>$v) {
+                    $res[] = $v['name'];
+                }
+                $val['rules'] = implode(',',$res);
+            }
+
+        }
+        return $typesData;
+    }
+
+    /**
+     * @param $id
+     * 分类创建、编辑
+     */
+    public function gatherTypeCredit($id=null,$name,$gather_rule_id=null)
+    {
+        $data = [
+            'name'=>$name,
+        ];
+        if ($id == null) {
+           TabHeadlineGatherTypes::insert($data);
+        } else {
+            //编辑
+            $data['gather_rule_id'] = $gather_rule_id;
+            $this->tabGatherTypes->where('id',$id)->update($data);
+        }
+        return true;
+    }
+
+
 
     /**
      * 17173采集规则
@@ -985,10 +1042,10 @@ class RulesService
     public function checkTitleSameple($data, $author = null)
     {
         if ($author !== null) {
-            $article = DB::table('tab_headline_article')->where('article_author', $author)->get(['article_title']);
+            $article = $this->tabHeadlineArticle->where('article_author', $author)->get(['article_title']);
             $article = json_decode($article, true);
         } else {
-            $article = DB::table('tab_headline_article')->where('status', '>=', 0)->get(['article_title']);
+            $article = $this->tabHeadlineArticle->where('status', '>=', 0)->get(['article_title']);
             $article = json_decode($article, true);
         }
 
