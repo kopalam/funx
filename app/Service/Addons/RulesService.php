@@ -73,19 +73,19 @@ class RulesService
                 $data['rule_list'] = json_encode($data['rule_list']);
                 $data['rule_content'] = json_encode($data['rule_content']);
                 unset($data['type']);
-                $handleData = $this->tabRule->where('handle',$data['handle'])->get();//DB::table('tab_headline_gather_rules')->where('handle',$data['handle'])->get();
-                if(empty(json_decode($handleData,true))) {
-                    $this->tabRule->insert($data);
-                }
-                    $this->tabRule->where('handle',$data['handle'])->update($data);
-
-
+                $handleData = $this->tabRule->where('handle',$data['handle'])->get();
+                $getData = TabHeadlineGatherRules::firstOrCreate($data);
+                $id = strval($getData->id);
                 //把分类加入types表中
-//                $gatherTypes = TabHeadlineGatherTypes::where('id',$data['gather_types'])->get(['gather_rule_id'])->toArray();
-//                if($gatherTypes) {
-//                    //是否已经存在该分类，如果是，则不处理，否则加入
-//                    $findTypes = strstr($gatherTypes,$id) == true ? :substr_replace($gatherTypes,$id.',',0,0);
-//                }
+                $gatherTypes = TabHeadlineGatherTypes::find($data['gather_types']);
+                if($gatherTypes) {
+                    //是否已经存在该分类，如果是，则不处理，否则加入
+                    $findTypes = strstr($gatherTypes->gather_rule_id,$id) !== false ? $gatherTypes->gather_rule_id
+                                 :substr_replace($gatherTypes->gather_rule_id,$id.',',0,0); //替换字符串
+                    //$this->tabGatherTypes->where('id',$data['gather_types'])->update(['gather_rule_id'=>$findTypes]);
+                    $gatherTypes->gather_rule_id = $findTypes;
+                    $gatherTypes->save();
+                }
                 return true;
                 break;
             default :
@@ -112,7 +112,14 @@ class RulesService
      */
     public function getRule($id)
     {
-        $res = $this->tabRule->where('id', $id)->get();
+        $res = TabHeadlineGatherRules::where('id', $id)->get()->toArray();
+        foreach ( $res as $key => &$val) {
+            $types = TabHeadlineGatherTypes::find($val['gather_types']);
+            if($types) {
+                $val['defaultType'] = ['id'=>$types->id,'name'=>$types->name];
+            }
+
+        }
         if (empty($res))
             throw new \Exception('目前还没有数据', 0);
         return $res;
