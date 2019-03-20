@@ -70,6 +70,9 @@ class RulesService
                 if ($content == false) {
                     return ['msg' => '暂时没有新的数据', 'code' => 0];
                 }
+                if(isset($data['save'])&& $data['save'] == true ) {
+                    $data['type'] = 4;
+                }
                 $res     =   $this->cleanData($content,$data['name'],$data['author'],$data['handle'],$data['type']);
                 break;
             case 3 :
