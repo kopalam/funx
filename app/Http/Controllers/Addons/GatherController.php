@@ -24,6 +24,7 @@ Class GatherController extends Controller
         $data['rule_list'] = $request->post('rule');
         $data['range_list'] = $request->post('range');
         $data['encoding'] = $request->post('encoding');
+        $data['c_encoding'] = $request->post('c_encoding');
         $data['url'] = $request->post('url');
         $data['full_url'] = $request->post('full_url');
         $data['author'] = $request->post('author');
@@ -51,6 +52,7 @@ Class GatherController extends Controller
         $data['full_url'] = $request->post('full_url');
         $data['type'] = $request->post('type');
         $data['encoding'] = $request->post('encoding');
+        $data['c_encoding'] = $request->post('c_encoding');
         $data['rule_content'] = $request->post('ruleContentList');
         $data['range_content'] = $request->post('contentRange');
         $data['full_url'] = $request->post('full_url');

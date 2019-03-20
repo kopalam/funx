@@ -43,7 +43,9 @@ class RulesService
      */
     function getRuleTest($data)
     {
-        $data['encoding'] = $data['encoding'] == 0 ? false : true;
+        $data['encoding'] = $data['encoding'] == '0' || $data['encoding'] == null ? false : true;
+        $data['c_encoding'] = $data['c_encoding'] == '0' || $data['c_encoding'] == null? false : true;
+
         switch (intval($data['type'])) {
             case 1 :
                 $getList = $this->generalTitleArr($data['url'], $data['range_list'], $data['rule_list'], $data['encoding']);
@@ -56,6 +58,8 @@ class RulesService
                 $titleData = $this->checkTitleSameple($getList, $data['author']);
                 if (empty($titleData))
                     return false;
+                //将数组中空的标题和url删除
+                $titleData = $this->removeBlank($titleData);
                 if ($this->checkArrEmpty($titleData) == false) { //剔除数据后，如果为空则返回没有数据
                     return false;
                 }
@@ -73,9 +77,13 @@ class RulesService
                 $data['rule_list'] = json_encode($data['rule_list']);
                 $data['rule_content'] = json_encode($data['rule_content']);
                 unset($data['type']);
-                $handleData = $this->tabRule->where('handle',$data['handle'])->get();
-                $getData = TabHeadlineGatherRules::firstOrCreate($data);
-                $id = strval($getData->id);
+                if(!empty($data['id'])) {
+                    $this->tabRule->where('handle',$data['handle'])->update(['gather_types'=>$data['gather_types']]);
+                    $id = $data['id'];
+                }else{
+                    $getData = TabHeadlineGatherRule::firstOrCreate($data);
+                    $id = strval($getData->id);
+                }
                 //把分类加入types表中
                 $gatherTypes = TabHeadlineGatherTypes::find($data['gather_types']);
                 if($gatherTypes) {
@@ -133,6 +141,7 @@ class RulesService
      */
     public static function generalSet($id, $tab, $handler)
     {
+        $id = strval($id);
         $data = DB::table($tab)->where('id', $id)->get();
         $data = json_decode($data, true);
         if (empty($data))
@@ -140,6 +149,10 @@ class RulesService
         switch ($handler) {
             case 'delete' :
                 $res = DB::table($tab)->where('id', $id)->update(['status' => -1]);
+                if($handler == 'delete' && $res == true && $tab = 'tab_headline_gather_rule') {
+                    //如果成功了，则删除分类里面的id
+                    static::deleteRuleIdFromTypes($id,$data[0]['gather_types']);
+                }
                 break;
             case 'disable':
                 $state = $data[0]['status'] == 0 ? 1 : 0;
@@ -184,6 +197,39 @@ class RulesService
         return $typesData;
     }
 
+    public function saveContent()
+    {
+        $redis = new RedisService();
+        $beginTime = microtime(true);
+        $ruleIdArr = TabHeadlineGatherType::find(3);
+        $id = rtrim($ruleIdArr->gather_rule_id,',');
+//        $redis->lPush(md5($data['gather_types']),serialize($res));
+        $rulesName = DB::select("select * from tab_headline_gather_rule where find_in_set(id,'".$id."')");
+        $rulesName =  json_decode(json_encode($rulesName),true);
+        $res = [];
+        $result = [];
+        foreach ($rulesName as $key => &$val) {
+            $val['rule_content'] = json_decode($val['rule_content'], true);
+            $val['rule_list'] = json_decode($val['rule_list'], true);
+            $val['type'] = 2;
+            $val['save'] = true;
+            $res[$key]['data'] = $this->getRuleTest($val);
+            foreach ($res as $k =>$v)
+            {
+                if($v['data'] == false)
+                    unset($res[$k]);
+                $result[] = $v['data'];
+            }
+
+        }
+        $endTime = microtime(true);
+        $time = round($endTime - $beginTime, 2) . '秒';
+        $result['time'] = $time;
+
+        return  $result;
+
+    }
+
     /**
      * @param $id
      * 分类创建、编辑
@@ -203,6 +249,28 @@ class RulesService
         return true;
     }
 
+    /**
+     * @param $id
+     * 如果删除了规则，则把分类中的该id删除
+     */
+    public static function deleteRuleIdFromTypes($id,$gather_types)
+    {
+        $types = TabHeadlineGatherType::find($gather_types);
+        $rule_id = $types->gather_rule_id;
+        $id = $id.",";
+
+
+        if(strstr($rule_id,$id )!== false) {
+            $res = strpos($rule_id,$id);
+            $strCount = strlen($id);
+            $data = substr_replace($rule_id,"",$res,$strCount); //删除开头标点符号
+
+            $types->gather_rule_id = $data;
+            $types->save();
+
+        }
+        return true;
+    }
 
 
     /**
@@ -1135,5 +1203,38 @@ class RulesService
         }
 
         return $xstr;
+    }
+
+    /**
+     * 删除列表中的空白项
+     * @param $list
+     * @return array
+     */
+    public function removeBlank($list)
+    {
+        $lists = [];
+        foreach ($list as &$val) {
+            if (!empty($val['title'])){
+                $lists[] = $val;
+            }
+        }
+
+        return $lists;
+    }
+
+    /**
+     * 删除列表中的空白项
+     */
+    public function removeListBlank($list)
+    {
+        $lists = [];
+
+        foreach ($list as $val) {
+            if (!empty($val['title']) && !empty($val['link']) && strstr($val['link'], 'htm'))
+                $lists[] = $val;
+        }
+
+        return $lists;
+
     }
 }
