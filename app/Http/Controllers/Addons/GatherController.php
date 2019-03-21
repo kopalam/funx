@@ -160,4 +160,20 @@ Class GatherController extends Controller
         showMsg(200,'success');
     }
 
+    /**
+     * @param Request $request
+     * @return false|string
+     * 一键采集 - 数据入表并返回记录
+     */
+    public function getContents(Request $request)
+    {
+        $id = $request->post('id');
+        $service = new RulesService();
+        $res = $service->saveContent($id);
+        if($res == false) {
+            return static::showMsg(0,'采集超时');
+        }
+        return static::showMsg(200,'success',$res);
+    }
+
 }

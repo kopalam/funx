@@ -35,3 +35,4 @@ $router->post('/getRule','Addons\GatherController@getRule');
 $router->post('/editRule','Addons\GatherController@editRule');
 $router->post('/ruleSet','Addons\GatherController@ruleSet');
 $router->post('/gatherType','Addons\GatherController@gatherType');
+$router->post('/getContents','Addons\GatherController@getContents');

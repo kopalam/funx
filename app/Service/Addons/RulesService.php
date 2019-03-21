@@ -19,21 +19,22 @@ class RulesService
     private $tabRule;
     private $tabHeadlineArticle;
     private $tabGatherTypes;
+
     function __construct()
     {
-//        $data   =   DB::table('tab_tools')->where('name','oss_storage')->get();
-//        $data   =   json_decode($data,true);
-//        $config     =   json_decode($data[0]['config'],true);;
-//        // 阿里云主账号AccessKey拥有所有API的访问权限，风险很高。强烈建议您创建并使用RAM账号进行API访问或日常运维，请登录 https://ram.console.aliyun.com 创建RAM账号。
-//        $this->accessKeyId = $config['accesskeyid'];
-//        $this->accessKeySecret = $config['accesskeysecr'];
-//// Endpoint以杭州为例，其它Region请按实际情况填写。
-//        $this->endpoint = $config['domain'];
-//// 存储空间名称
-//        $this->bucket= $config['bucket'];
+
+        $data = TabTools::where('name', 'qiniu')->get()->toArray();
+//        $data = json_decode($data, true);
+        $config = json_decode($data[0]['set_tools'], true);
+        // 阿里云主账号AccessKey拥有所有API的访问权限，风险很高。强烈建议您创建并使用RAM账号进行API访问或日常运维，请登录 https://ram.console.aliyun.com 创建RAM账号。
+        $this->accessKeyId = $config['accessKey'];
+        $this->accessKeySecret = $config['secretKey'];
+// 存储空间名称
+        $this->bucket = $config['bucket'];
         $this->tabRule = DB::table('tab_headline_gather_rules');
         $this->tabHeadlineArticle = DB::table('tab_headline_articles');
         $this->tabGatherTypes = DB::table('tab_headline_gather_types');
+
     }
 
     /**
@@ -45,19 +46,20 @@ class RulesService
     {
         $data['encoding'] = $data['encoding'] == '0' || $data['encoding'] == null ? false : true;
         $data['c_encoding'] = $data['c_encoding'] == '0' || $data['c_encoding'] == null? false : true;
-
         switch (intval($data['type'])) {
             case 1 :
                 $getList = $this->generalTitleArr($data['url'], $data['range_list'], $data['rule_list'], $data['encoding']);
                 $res = $this->checkTitleSameple($getList, $data['author']);
                 if (empty($res))
                     return false;
+                //入表对应记录
                 break;
             case 2 :
                 $getList = $this->generalTitleArr($data['url'], $data['range_list'], $data['rule_list'], $data['encoding']);
                 $titleData = $this->checkTitleSameple($getList, $data['author']);
                 if (empty($titleData))
                     return false;
+
                 //将数组中空的标题和url删除
                 $titleData = $this->removeBlank($titleData);
                 if ($this->checkArrEmpty($titleData) == false) { //剔除数据后，如果为空则返回没有数据
@@ -66,7 +68,7 @@ class RulesService
                 if (strstr($data['handle'], 'qq')) {
                     $titleData = $this->deleteEmptyString($titleData, 'video');
                 }
-                $content = $this->generalFormatArrContent($data['range_content'], $data['rule_content'], $titleData, $data['encoding'],$data['full_url']);
+                $content = $this->generalFormatArrContent($data['range_content'], $data['rule_content'], $titleData, $data['c_encoding'],$data['full_url']);
                 if ($content == false) {
                     return ['msg' => '暂时没有新的数据', 'code' => 0];
                 }
@@ -74,6 +76,7 @@ class RulesService
                     $data['type'] = 4;
                 }
                 $res     =   $this->cleanData($content,$data['name'],$data['author'],$data['handle'],$data['type']);
+
                 break;
             case 3 :
                 //如果type = 3,则入表。 表中存在handle则更新，否则写入
@@ -81,28 +84,30 @@ class RulesService
                 $data['rule_content'] = json_encode($data['rule_content']);
                 unset($data['type']);
                 if(!empty($data['id'])) {
-                    $this->tabRule->where('handle',$data['handle'])->update(['gather_types'=>$data['gather_types']]);
                     $id = $data['id'];
+                    unset($data['id']);
+                    $this->tabRule->where('handle',$data['handle'])->update($data);
                 }else{
-                    $getData = TabHeadlineGatherRule::firstOrCreate($data);
+                    $getData = TabHeadlineGatherRules::firstOrCreate($data);
                     $id = strval($getData->id);
                 }
                 //把分类加入types表中
                 $gatherTypes = TabHeadlineGatherTypes::find($data['gather_types']);
-                if($gatherTypes) {
-                    //是否已经存在该分类，如果是，则不处理，否则加入
-                    $findTypes = strstr($gatherTypes->gather_rule_id,$id) !== false ? $gatherTypes->gather_rule_id
-                                 :substr_replace($gatherTypes->gather_rule_id,$id.',',0,0); //替换字符串
-                    //$this->tabGatherTypes->where('id',$data['gather_types'])->update(['gather_rule_id'=>$findTypes]);
-                    $gatherTypes->gather_rule_id = $findTypes;
-                    $gatherTypes->save();
-                }
+                //是否已经存在该分类，如果是，则不处理，否则加入
+                $findTypes = strstr($gatherTypes->gather_rule_id, $id) !== false ? $gatherTypes->gather_rule_id
+                    : substr_replace($gatherTypes->gather_rule_id, $id . ',', 0, 0); //替换字符串
+                $gatherTypes->gather_rule_id = $findTypes;
+                $gatherTypes->save();
                 return true;
+                break;
+            case 4 :
+
                 break;
             default :
                 return false;
                 break;
         }
+
         return $res;
     }
 
@@ -111,8 +116,18 @@ class RulesService
      */
     public function getRulesList($page)
     {
-        $res = $this->tabRule->where('status', '>=','0')->paginate(15);
-        $result = [];
+//        $res = $this->tabRule->where('status', '>=','0')->paginate(80);
+        $res = $this->tabRule->where('status', '>=','0')->get();
+        $res = json_decode(json_encode($res), true);
+//        dd($res);
+        foreach ($res as $key => &$val) {
+            //加入分类名称
+            $ruleName = TabHeadlineGatherTypes::find($val['gather_types']);
+
+            if($ruleName) {
+                $val['gather_types_name'] = $ruleName->name;
+            }
+        }
         if (empty($res))
             throw new \Exception('目前还没有数据', 0);
         return $res;
@@ -128,6 +143,8 @@ class RulesService
             $types = TabHeadlineGatherTypes::find($val['gather_types']);
             if($types) {
                 $val['defaultType'] = ['id'=>$types->id,'name'=>$types->name];
+            }else {
+                $val['defaultType'] = ['id'=>1,'name'=>'请选择对应分类'];
             }
 
         }
@@ -152,7 +169,7 @@ class RulesService
         switch ($handler) {
             case 'delete' :
                 $res = DB::table($tab)->where('id', $id)->update(['status' => -1]);
-                if($handler == 'delete' && $res == true && $tab = 'tab_headline_gather_rule') {
+                if($handler == 'delete' && $res == true && $tab = 'tab_headline_gather_rules') {
                     //如果成功了，则删除分类里面的id
                     static::deleteRuleIdFromTypes($id,$data[0]['gather_types']);
                 }
@@ -200,39 +217,6 @@ class RulesService
         return $typesData;
     }
 
-    public function saveContent()
-    {
-        $redis = new RedisService();
-        $beginTime = microtime(true);
-        $ruleIdArr = TabHeadlineGatherType::find(3);
-        $id = rtrim($ruleIdArr->gather_rule_id,',');
-//        $redis->lPush(md5($data['gather_types']),serialize($res));
-        $rulesName = DB::select("select * from tab_headline_gather_rule where find_in_set(id,'".$id."')");
-        $rulesName =  json_decode(json_encode($rulesName),true);
-        $res = [];
-        $result = [];
-        foreach ($rulesName as $key => &$val) {
-            $val['rule_content'] = json_decode($val['rule_content'], true);
-            $val['rule_list'] = json_decode($val['rule_list'], true);
-            $val['type'] = 2;
-            $val['save'] = true;
-            $res[$key]['data'] = $this->getRuleTest($val);
-            foreach ($res as $k =>$v)
-            {
-                if($v['data'] == false)
-                    unset($res[$k]);
-                $result[] = $v['data'];
-            }
-
-        }
-        $endTime = microtime(true);
-        $time = round($endTime - $beginTime, 2) . '秒';
-        $result['time'] = $time;
-
-        return  $result;
-
-    }
-
     /**
      * @param $id
      * 分类创建、编辑
@@ -243,7 +227,7 @@ class RulesService
             'name'=>$name,
         ];
         if ($id == null) {
-           TabHeadlineGatherTypes::insert($data);
+            TabHeadlineGatherTypes::insert($data);
         } else {
             //编辑
             $data['gather_rule_id'] = $gather_rule_id;
@@ -252,13 +236,58 @@ class RulesService
         return true;
     }
 
+
+    public function saveContent($id)
+    {
+//        $redis = new RedisService();
+        $beginTime = microtime(true);
+        $ruleIdArr = TabHeadlineGatherTypes::find($id);
+        $id = rtrim($ruleIdArr->gather_rule_id,',');
+//        $redis->lPush(md5($data['gather_types']),serialize($res));
+        $rulesName = DB::select("select * from tab_headline_gather_rules where find_in_set(id,'".$id."')");
+        $rulesName =  json_decode(json_encode($rulesName),true);
+        $result = [];
+        foreach ($rulesName as $key => $val) {
+            $val['rule_content'] = json_decode($val['rule_content'], true);
+            $val['rule_list'] = json_decode($val['rule_list'], true);
+            $val['type'] = 2;
+            $val['save'] = true;
+
+            $get_data = $this->getRuleTest($val);
+
+            if ($get_data)
+                $result[] = $get_data;
+        }
+        $addData = [];
+        foreach ($result as $val) {
+            foreach ($val as $v) {
+                $addData[] = $v;
+            }
+        }
+        shuffle($addData);
+        //        if(!empty($addData)) {
+//            TabHeadlineArticle::insert($addData);
+//            dispatch(new PhotoJob($addData));
+//        }
+
+        $endTime = microtime(true);
+        $time = round($endTime - $beginTime, 2) . '秒';
+        if($time >= 20 ) {
+            return false;
+        }
+        $addData['time'] = $time;
+
+        return  $addData;
+
+    }
+
     /**
      * @param $id
      * 如果删除了规则，则把分类中的该id删除
      */
     public static function deleteRuleIdFromTypes($id,$gather_types)
     {
-        $types = TabHeadlineGatherType::find($gather_types);
+        $types = TabHeadlineGatherTypes::find($gather_types);
         $rule_id = $types->gather_rule_id;
         $id = $id.",";
 
@@ -274,7 +303,6 @@ class RulesService
         }
         return true;
     }
-
 
     /**
      * 17173采集规则
@@ -964,16 +992,16 @@ class RulesService
      */
     public function generalTitleArr($url, $range, $rules, $encoding = false)
     {
+
         if ($encoding == true) {
-            $res = QueryList::get($url)->rules($rules)->encoding('UTF-8', 'gb2312')->range($range)->query()->getData();
-            if ($res == false)
-                $res = QueryList::get($url)->rules($rules)->encoding('UTF-8', 'gb2312')->removeHead()->range($range)->query()->getData();
+            $res = QueryList::get($url)->rules($rules)->encoding('UTF-8', 'gb2312')->removeHead()->range($range)->query()->getData();
         } else {
             $res = QueryList::get($url)->rules($rules)->range($range)->query()->getData();
         }
         // 当list超过20的时候,只取20条
-        $res = $res->take(20)->all();
+        $res = $res->take(10)->all();
 
+        $res = $this->removeListBlank($res);
         return $res;
     }
 
@@ -983,8 +1011,10 @@ class RulesService
      * @param $data array 数据数组
      * @param null $encoding 是否要转字符格式
      */
-    public function generalFormatArrContent($range, $rules, $data, $encoding = false,$full_url=null)
+    public function generalFormatArrContent($range, $rules, $data, $encoding = false, $full_url = null)
     {
+
+        set_time_limit(0);
         foreach ($data as $key => $val) {
             if(strstr($val['link'], 'http') == false){
                 // 判断如何拼接
@@ -992,11 +1022,66 @@ class RulesService
             }
             $url[] = $val['link'];
         }
+
         if ($encoding == true) {
-            $res = [];
+            if  (strstr($url[0], 'https') != false) {
+                $res = $this->getHttpsContentMultiPost($rules, $range, $url, true);
+            } else {
+                $res = $this->getHttpContentMultiPost($rules, $range, $url, true);
+                //如果是用并发无法完成,就使用循环
+                if (empty($res)) {
+                    $res = $this->getHttpsContentMultiPost($rules, $range, $url, true);
+                }
+            }
+        }
+        else {
+
+            if  (strstr($url[0], 'https') != false) {
+                $res = $this->getHttpsContentMultiPost($rules, $range, $url, false);
+            } else {
+                $res = $this->getHttpContentMultiPost($rules, $range, $url, false);
+
+                //如果是用并发无法完成,就使用循环
+                if (empty($res)) {
+                    $res = $this->getHttpsContentMultiPost($rules, $range, $url, false);
+                }
+            }
+        }
+
+        foreach ($res as $datum => $v) {
+            if (empty($v))
+                unset($res[$datum]);
+        }
+
+        foreach ($res as $key =>$val) {
+            //数据必须是二位数组 一条
+            if(count($val) > 1) {
+                unset($res[$key]);
+            }
+            //二维数组第一条数据必须完整
+            if (count($val[0]) < 2) {
+                unset($res[$key]);
+            }
+
+        }
+        return $res;
+    }
+
+    /**
+     * 采集非http内容
+     * @param $range
+     * @param $rules
+     * @param $urls
+     * @param bool $encoding
+     * @return array
+     */
+    public function getHttpContentMultiPost($rules, $range, $urls, $encoding = false)
+    {
+        $res = [];
+        if ($encoding) {
             QueryList::rules($rules)
                 ->range($range)
-                ->multiGet($url)
+                ->multiGet($urls)
                 // 设置并发数为2
                 ->concurrency(5)
                 // 设置GuzzleHttp的一些其他选项
@@ -1004,40 +1089,61 @@ class RulesService
                     'timeout' => 60
                 ])
                 // 设置HTTP Header
-                ->withHeaders(['User-Agent' => 'Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X)
-                    AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1'])
+                ->withHeaders([ 'User-Agent' => 'QueryList'])
                 // HTTP success回调函数
                 ->success(function (QueryList $ql, Response $response, $index) use (&$res) {
-                    $data = $ql->encoding('UTF-8', 'GB2312')->queryData();
-                    if (!$data)
-                        $data = $ql->removeHead()->queryData();
+                    $data = $ql->encoding('UTF-8', 'GB2312')->removeHead()->queryData();
                     $res[] = $data;
                 })->send();
         } else {
-            $res = [];
             QueryList::rules($rules)
                 ->range($range)
-                ->multiGet($url)
+                ->multiPost($urls)
                 // 设置并发数为2
                 ->concurrency(5)
                 // 设置GuzzleHttp的一些其他选项
                 ->withOptions([
                     'timeout' => 60
                 ])// 设置HTTP Header
-//                ->withHeaders(['User-Agent' => 'Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X)
-//                    AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1'])
+                ->withHeaders([ 'User-Agent' => 'QueryList'])
                 // HTTP success回调函数
                 ->success(function (QueryList $ql, Response $response, $index) use (&$res) {
                     $data = $ql->queryData();
                     $res[] = $data;
-                })->send();
+                })
+                ->error(function (){
+                })
+                ->send();
         }
 
+        return $res;
 
-        foreach ($res as $datum => $v) {
-            if (empty($v))
-                unset($res[$datum]);
+    }
+
+    /**
+     * 采集https内容,https网站使用并发请求有时会有整数问题,采用循环一条一条的采集
+     * @param $range
+     * @param $rules
+     * @param $urls
+     * @param bool $encoding
+     * @return array
+     */
+    public function getHttpsContentMultiPost($rules, $range, $urls, $encoding = false)
+    {
+        $res = [];
+
+        if ($encoding) {
+            foreach ($urls as $val) {
+                $data  = QueryList::get($val)->rules($rules)->range($range)->encoding('UTF-8', 'GB2312')->removeHead()->queryData();
+                $res[] = $data;
+            }
+        } else {
+            foreach ($urls as $val) {
+                $data  = QueryList::get($val)->rules($rules)->range($range)->queryData();
+                $res[] = $data;
+            }
         }
+
         return $res;
     }
 
@@ -1052,7 +1158,6 @@ class RulesService
 
     public function cleanData($data, $url, $author, $name,$type=null)
     {
-
         $return = [];
         if($type == 2)
         {
@@ -1062,7 +1167,7 @@ class RulesService
                         unset($val[$get]);
                     }
                     $return[$key]['title'] = $datas['title'];
-                    $return[$key]['content'] = mb_substr($datas['link'],0,250)."...";//$datas['link'];//
+                    $return[$key]['content'] = $datas['link'];//mb_substr($datas['link'],0,250)."...";//$datas['link'];//
                 }
             }
             return $return;
@@ -1089,10 +1194,9 @@ class RulesService
                     if (empty($datas['title'])) {
                         unset($val[$get]);
                     }
-                    if (strstr($datas['content'], 'script') == true) unset($val[$get]);
-
+//                    if (strstr($datas['content'], 'script') == true) unset($val[$get]);
                     $return[$key]['article_title'] = $datas['title'];
-                    $return[$key]['article_content'] = $datas['content'];//$name == '17173' ? $datas['content'] :$this->replaceimg($datas['content']);
+                    $return[$key]['article_content'] = isset($datas['link']) ? $datas['link'] : $datas['content'];//$name == '17173' ? $datas['content'] :$this->replaceimg($datas['content']);
                     $return[$key]['article_create_time'] = $name == '9you' ? strtotime(preg_replace('/([\x80-\xff]*)/i', '', $datas['dates'])) : $return[$key]['article_create_time'] = time();
                     $return[$key]['article_author'] = $author;
                     $return[$key]['article_come'] = $author;
@@ -1107,14 +1211,25 @@ class RulesService
                 }
             }
         }
+
         //如果数据全部重复，则为false
         if (empty($return)) {
             $res = ['msg' => '暂时没有新的数据', 'code' => 0];
             return $res;
         }
+        if ($type == 4) {
+//
+//            foreach ( $return as $key =>$val) {
+////                $val['article_create_time'] = date('Y-m-d H:i:s',$val['article_create_time']);
+//                $article[] = $val;
+//            }
+
+            return $return;
+        }
+
         //清理重复数据后，直接插入
         if (is_array($return)) {
-            TabHeadlineArticle::insert($return);
+            TabHeadlineArticles::insert($return);
             $res = ['code' => 200, 'count' => count($return), 'msg' => '采集成功'];
             dispatch(new PhotoJob($return));
             return $res;
@@ -1128,10 +1243,10 @@ class RulesService
     public function checkTitleSameple($data, $author = null)
     {
         if ($author !== null) {
-            $article = $this->tabHeadlineArticle->where('article_author', $author)->get(['article_title']);
+            $article = DB::table('tab_headline_articles')->where('article_author', $author)->get(['article_title']);
             $article = json_decode($article, true);
         } else {
-            $article = $this->tabHeadlineArticle->where('status', '>=', 0)->get(['article_title']);
+            $article = DB::table('tab_headline_articles')->where('status', '>=', 0)->get(['article_title']);
             $article = json_decode($article, true);
         }
 
@@ -1238,6 +1353,26 @@ class RulesService
         }
 
         return $lists;
-
     }
+
+
+
+
+    function array_unique_fb($array2D, $keys)
+    {
+        foreach ($array2D as $k => $v) {
+            $v = join(',', $v);  //降维,也可以用implode,将一维数组转换为用逗号连接的字符串
+            $temp[$k] = $v;
+        }
+        $temp = array_unique($temp); //去掉重复的字符串,也就是重复的一维数组
+        foreach ($temp as $k => $v) {
+            $array = explode(',', $v); //再将拆开的数组重新组装
+            foreach ($keys as $index => $key) {
+                echo $k;
+                $temp2[$k][$key] = $array[$index];
+            }
+        }
+        return $temp2;
+    }
+
 }
