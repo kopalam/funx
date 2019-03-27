@@ -1,21 +1,18 @@
-# Lumen PHP Framework
+#Fun - 基于Lumen的开发框架
 
-[![Build Status](https://travis-ci.org/laravel/lumen-framework.svg)](https://travis-ci.org/laravel/lumen-framework)
-[![Total Downloads](https://poser.pugx.org/laravel/lumen-framework/d/total.svg)](https://packagist.org/packages/laravel/lumen-framework)
-[![Latest Stable Version](https://poser.pugx.org/laravel/lumen-framework/v/stable.svg)](https://packagist.org/packages/laravel/lumen-framework)
-[![Latest Unstable Version](https://poser.pugx.org/laravel/lumen-framework/v/unstable.svg)](https://packagist.org/packages/laravel/lumen-framework)
-[![License](https://poser.pugx.org/laravel/lumen-framework/license.svg)](https://packagist.org/packages/laravel/lumen-framework)
+**它是干什么的**
 
-Laravel Lumen is a stunningly fast PHP micro-framework for building web applications with expressive, elegant syntax. We believe development must be an enjoyable, creative experience to be truly fulfilling. Lumen attempts to take the pain out of development by easing common tasks used in the majority of web projects, such as routing, database abstraction, queueing, and caching.
+```
+Fun全称是Funkits，他是基于Lumen+vue来实现接口与前后端分离。在我的构想中，这个系统是组件化的形式组成。
+开发者可以根据自己的需求开发组件来实现所需的功能。不需要去考虑从0去用一个框架开发，从而更快的进行项目开展与快速试错。
+降低开发成本。
+```
 
-## Official Documentation
+**目前是怎么样了**
 
-Documentation for the framework can be found on the [Lumen website](https://lumen.laravel.com/docs).
+```
+因为是业余项目，目前而言，进行了初步的开发。正在开发插件机制，根据自身需求开发了一个采集资讯插件。
+对应我的项目库中的 fun-gather即可使用
 
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Lumen, please send an e-mail to Taylor Otwell at taylor@laravel.com. All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Lumen framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+目前它能够采集 - 预设的资讯与图片本地化/oss存储
+```
