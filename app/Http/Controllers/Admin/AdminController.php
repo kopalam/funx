@@ -19,17 +19,17 @@ class AdminController extends Controller
      */
         public function login(Request $request)
         {
-//            $name   =   $request->post('name');
-//            $password     =   $request->post('password');
-//            $uid    =   $request->post('uid');
-//            $token  =   $request->post('token');
-//            $authory    =   new AuthoryService($token);
-//            $authory->checkToken($uid);
-//            return $token;
-            $redis  =   new UseRedisService();
-               $redis->set(111,222);
-            $data   = $redis->get(111);
-            echo $data;
+            $name   =   $request->post('name');
+            $password     =   $request->post('password');
+            $uid    =   $request->post('uid');
+            $token  =   $request->post('token');
+            $authory    =   new AuthoryService($token);
+            $authory->checkToken($uid);
+            return $token;
+//            $redis  =   new UseRedisService();
+//               $redis->set(111,222);
+//            $data   = $redis->get(111);
+//            echo $data;
         }
 
 
