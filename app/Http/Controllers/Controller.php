@@ -18,4 +18,5 @@ class Controller extends BaseController
         $result = ['status' => $code, 'msg' => $msg, 'data' => $data];
         return (json_encode($result));
     }
+
 }

@@ -10,6 +10,8 @@
 namespace App\Service\General;
 
 use App\Models\funx\TabAdminUser;
+use App\Models\funx\TabAuthGroup;
+use App\Models\funx\TabAuthRule;
 use Illuminate\Support\Facades\Config;
 use Qiniu\Auth;
 use Qiniu\Storage\UploadManager;
@@ -42,14 +44,41 @@ class UserService
      * level can not empty
      * table tab_auth_group tab_auth_group_access
      */
-    public function createUser($name,$password,$level)
+    public function creatEditUser($name,$password,$email,$level,$uid=null)
     {
-        //TODO create adminUser
+        //if !empty $uid ,to save else to insert
+        $password =  password_hash($password,PASSWORD_DEFAULT);
+        if ($uid !== 0) {
+            $user = TabAdminUser::find($uid);
+            if(!$user)
+                throw new \Exception('该用户不存在',1005);
+            $user->nick_name = $name;
+            $user->password = $password;
+            $user->level = $level;
+            $user->email = $email;
+            if ($user->save() == false)
+                throw new \Exception('修改用户信息失败',1004);
+        } else {
+            $condition = [
+                'nick_name' => $name,
+                'password' => $password,
+                'signature' => createCauth(),
+                'create_time' => time(),
+                'last_login_time' => 0,
+                'level' => $level,
+                'email' => $email
+                ];
+            $res = TabAdminUser::insert($condition);
+            if($res == false)
+                throw new \Exception('新增用户失败',1003);
+        }
+
+        return true;
     }
 
     /**
-     * @param string $name rule name
-     * @param string $title rule title
+     * @param string $name rule name sample '/admin/writer'
+     * @param string $title rule title sample 超级管理员
      * @param string $type if type = 1,$condtion can custom Regular expression(自定义表达式) like {score}>5 and {score}<100
      * @param int $status
      * @param $condition
@@ -57,9 +86,32 @@ class UserService
      * table tab_auth_rule tab_auth_group
      */
 
-    public function createGroup($name,$title,$type=1,$status=0,$condition)
+    public function createGroup($name,$title,$type=1,$status=0,$condition=null)
     {
 
     }
+
+    /**
+     * Get the rules or group in the table
+     * return array
+     */
+    public function getGroupRule($handle)
+    {
+        switch ($handle) {
+            case 'rule' :
+                $res = TabAuthRule::all(['id','title']);
+                break;
+            case 'group' :
+
+                break;
+            default :
+                throw new \Exception('查找失败',2001);
+                break;
+        }
+        $group = TabAuthGroup::all(['id','title']);
+        return $group;
+    }
+
+
 }
 

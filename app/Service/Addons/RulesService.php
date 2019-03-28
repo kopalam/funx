@@ -265,10 +265,10 @@ class RulesService
             }
         }
         shuffle($addData);
-        //        if(!empty($addData)) {
-//            TabHeadlineArticle::insert($addData);
-//            dispatch(new PhotoJob($addData));
-//        }
+        if (!empty($addData)) {
+            TabHeadlineArticle::insert($addData);
+            dispatch(new PhotoJob($addData));
+        }
 
         $endTime = microtime(true);
         $time = round($endTime - $beginTime, 2) . '秒';

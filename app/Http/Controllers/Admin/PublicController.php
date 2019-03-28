@@ -9,6 +9,7 @@
 namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Service\General\UserService;
+use App\User;
 use Illuminate\Http\Request;
 
 
@@ -39,10 +40,27 @@ class PublicController extends Controller
      * @signature When create the admin_user,generate the signature
      * @level The admin_user level,like writer , super manager...
      */
-    public function create(Request $request)
+    public function createUser(Request $request)
     {
+        $name = $request->post('name');
+        $uid = $request->post('uid');
+        $level = $request->post('level');
+        $password = $request->post('password');
+        $email = $request->post('email');
+        $uid = empty($uid) ? 0 : $uid;
+        $service = new UserService();
+        try {
+            $res = $service->creatEditUser($name,$password,$email,$level,$uid);
+        } catch (\Exception $e) {
+
+            return static::showMsg($e->getCode(),$e->getMessage());
+
+        }
+
+        return static::showMsg(200,'success');
 
     }
+
 
 
 
