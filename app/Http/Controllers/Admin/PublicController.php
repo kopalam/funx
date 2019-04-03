@@ -9,6 +9,7 @@
 namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Service\General\UserService;
+use App\Service\Redis\RedisService;
 use App\User;
 use Illuminate\Http\Request;
 
@@ -23,10 +24,10 @@ class PublicController extends Controller
     public function login(Request $request)
     {
         $nick_name = $request->post('name');
-        $password = $request->post('password');
+        $passwd = $request->post('passwd');
         $service = new UserService();
         try {
-            $res = $service->checkLogin($nick_name, $password);
+            $res = $service->checkLogin($nick_name, $passwd);
         } catch (\Exception $e) {
             return showMsg($e->getCode(),$e->getMessage());
         }
@@ -43,21 +44,27 @@ class PublicController extends Controller
     public function createUser(Request $request)
     {
         $name = $request->post('name');
-        $uid = $request->post('uid');
-        $level = $request->post('level');
-        $password = $request->post('password');
+        $user_id = $request->post('user_id');
+        $levels = $request->post('levels');
+        $passwd = $request->post('passwd');
         $email = $request->post('email');
-        $uid = empty($uid) ? 0 : $uid;
+        $user_id = empty($user_id) ? 0 : $user_id;
         $service = new UserService();
         try {
-            $res = $service->creatEditUser($name,$password,$email,$level,$uid);
+            $res = $service->creatEditUser($name,$passwd,$email,$levels,$user_id);
+
         } catch (\Exception $e) {
-
             return static::showMsg($e->getCode(),$e->getMessage());
-
         }
+        return static::showMsg(200,'success',$res = is_string($res) ?  $res : '');
+    }
 
-        return static::showMsg(200,'success');
+    public function testRedis()
+    {
+        $redis = new RedisService();
+        $set = $redis->set(111,222,300);
+        $get = $redis->get(111);
+        echo $get;
 
     }
 

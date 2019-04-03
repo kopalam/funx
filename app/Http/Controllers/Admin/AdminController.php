@@ -4,18 +4,20 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Service\General\UserService;
+use Illuminate\Http\Request;
 
 class AdminController extends Controller
 {
     /**
-     * Request GET
+     * Request post
      * get the rules and group from table
      */
-    public function getRules()
+    public function getRules(Request $request)
     {
+        $handle = $request->post('handle');
         $service = new UserService();
         try {
-            $res = $service->getRules();
+            $res = $service->getGroupRule($handle);
         } catch (\Exception $e) {
             return static::showMsg($e->getCode(),$e->getMessage());
         }

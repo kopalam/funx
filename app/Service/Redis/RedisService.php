@@ -18,7 +18,7 @@ class RedisService
      */
     function    __construct($logger = null){
         $this->redis     = new \Redis();
-        $host      = '192.168.1.200';
+        $host      = '127.0.0.1';
         $port      = 6379;
         if ( ! $this->redis->connect($host, $port) ){
             if ($logger) {
@@ -31,8 +31,7 @@ class RedisService
 
     public function set($key , $value, $expire)
     {
-        $this->redis->setex($key,$expire,$value);
-
+        $this->redis->set($key,$value,$expire);
     }
     public function del($key)
     {

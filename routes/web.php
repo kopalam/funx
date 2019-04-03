@@ -37,4 +37,7 @@ $router->post('/ruleSet','Addons\GatherController@ruleSet');
 $router->post('/gatherType','Addons\GatherController@gatherType');
 $router->post('/getContents','Addons\GatherController@getContents');
 $router->post('/createUser','Admin\PublicController@createUser');
-$router->get('/admin/getRules','Admin\AdminController@getRules');
+$router->post('/admin/getRules','Admin\AdminController@getRules');
+$router->post('/admin/createUser','Admin\PublicController@createUser');
+$router->post('/admin/login','Admin\PublicController@login');
+$router->post('/admin/test','Admin\PublicController@testRedis');
