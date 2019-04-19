@@ -21,6 +21,7 @@ class AdminController extends Controller
         } catch (\Exception $e) {
             return static::showMsg($e->getCode(),$e->getMessage());
         }
+
         return static::showMsg(200,'success',$res);
     }
 }
